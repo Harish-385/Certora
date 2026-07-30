@@ -1,0 +1,11 @@
+flask
+flask-mail
+pandas
+openpyxl
+python-dotenv
+pdfkit
+weasyprint
+PyPDF2
+reportlabflask-cors
+qrcode[pil]
+psycopg2-binary
