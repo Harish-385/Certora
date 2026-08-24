@@ -1,11 +1,16 @@
 flask
 flask-mail
+flask
+flask-mail
 pandas
 openpyxl
 python-dotenv
 pdfkit
 weasyprint
 PyPDF2
-reportlabflask-cors
+reportlab
+flask-cors
+flask-talisman
+flask-limiter
 qrcode[pil]
 psycopg2-binary

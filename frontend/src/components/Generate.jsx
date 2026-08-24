@@ -1,12 +1,111 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
-import { UploadCloud, CheckCircle, Eye, AlertTriangle, Save, X } from 'lucide-react';
+import { UploadCloud, CheckCircle, Eye, AlertTriangle, Save, X } from './SvgIcons';
 
-const DEFAULT_FIELD = { key: 'Name', x_percent: 50.0, y_percent: 50.0, font_size: 60, align: 'center', color: '#000000' };
+const DEFAULT_FIELD = { key: 'Name', x_percent: 50.0, y_percent: 50.0, font_size: 60, align: 'center', color: 'var(--text-primary)' };
 const MARKER_COLORS = ['#6366F1', '#EC4899', '#10B981', '#F59E0B', '#3B82F6', '#8B5CF6', '#EF4444'];
 const mc = (idx) => MARKER_COLORS[idx % MARKER_COLORS.length];
 
-export default function Generate() {
+/* ─── Version History Panel (Item 7) ─────────────────────────────────────── */
+function VersionHistoryPanel({ userId, open, onClose, onRestore }) {
+  const [versions, setVersions] = useState([]);
+  const [restoring, setRestoring] = useState(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const url = userId
+      ? `http://${window.location.hostname}:5000/api/versions?user_id=${userId}`
+      : `http://${window.location.hostname}:5000/api/versions`;
+    axios.get(url).then(res => setVersions(res.data.versions || [])).catch(() => {});
+  }, [open, userId]);
+
+  const handleRestore = async (v) => {
+    setRestoring(v.id);
+    try {
+      const res = await axios.post(`http://${window.location.hostname}:5000/api/versions/${v.id}/restore`);
+      onRestore(res.data.fields || []);
+      onClose();
+    } catch (e) {
+      alert('Restore failed: ' + (e.response?.data?.error || e.message));
+    } finally {
+      setRestoring(null);
+    }
+  };
+
+  if (!open) return null;
+  return (
+    <div style={{
+      position: 'fixed', top: 0, right: 0, bottom: 0, width: '340px',
+      background: 'var(--surface)',
+      borderLeft: '1px solid var(--border)',
+      boxShadow: '-8px 0 32px rgba(0,0,0,0.18)',
+      zIndex: 9999,
+      display: 'flex', flexDirection: 'column',
+      animation: 'slideInRight 0.25s ease',
+    }}>
+      <style>{`@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }`}</style>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>🕐 Version History</h3>
+          <p style={{ margin: '0.1rem 0 0', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Like Figma — restore any saved state</p>
+        </div>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '1.2rem', padding: '0.25rem' }}>✕</button>
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.5rem' }}>
+        {versions.length === 0 ? (
+          <div style={{ textAlign: 'center', color: 'var(--text-secondary)', marginTop: '2rem', fontSize: '0.85rem' }}>
+            No versions saved yet.<br />
+            <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>Save your config to create a version.</span>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            {versions.map((v, i) => (
+              <div key={v.id} style={{
+                padding: '0.85rem 1rem',
+                background: 'var(--bg-color)',
+                border: '1px solid var(--border)',
+                borderRadius: '0.65rem',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                transition: 'border-color 0.2s',
+              }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+              >
+                <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center' }}>
+                  <div style={{
+                    width: '32px', height: '32px', borderRadius: '0.45rem',
+                    background: i === 0 ? 'rgba(200,160,122,0.2)' : 'var(--surface-hover)',
+                    border: i === 0 ? '1px solid rgba(200,160,122,0.4)' : '1px solid var(--border)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '0.75rem', fontWeight: 800, color: i === 0 ? 'var(--accent)' : 'var(--text-secondary)',
+                    flexShrink: 0,
+                  }}>{v.version_num}</div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)' }}>{v.label}</div>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>{v.created_at ? new Date(v.created_at).toLocaleString() : '—'}</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleRestore(v)}
+                  disabled={restoring === v.id}
+                  style={{
+                    padding: '0.3rem 0.75rem', borderRadius: '0.4rem', border: 'none',
+                    background: i === 0 ? 'rgba(200,160,122,0.15)' : 'var(--surface-hover)',
+                    color: 'var(--text-primary)', fontSize: '0.72rem', fontWeight: 700,
+                    cursor: 'pointer', whiteSpace: 'nowrap',
+                  }}
+                >{restoring === v.id ? '...' : 'Restore'}</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function Generate({ active = true }) {
   const [status, setStatus] = useState({ winner_exists: false, participant_exists: false });
   const [winnerFile, setWinnerFile] = useState(null);
   const [participantFile, setParticipantFile] = useState(null);
@@ -16,6 +115,8 @@ export default function Generate() {
   const [showPreviews, setShowPreviews] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [qrPosition, setQrPosition] = useState('center-bottom');
+  const [fontStyle, setFontStyle] = useState('');
+  const [fontLoading, setFontLoading] = useState(false);
 
   // Text field placement state
   const [activeFieldIndex, setActiveFieldIndex] = useState(0);
@@ -24,6 +125,11 @@ export default function Generate() {
   const [textFieldsConfig, setTextFieldsConfig] = useState([{ ...DEFAULT_FIELD }]);
   const [editingTemplateIdx, setEditingTemplateIdx] = useState(null);
   const previewRef = useRef(null);
+
+  // Version history (Item 7)
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [undoStack, setUndoStack] = useState([]); // local undo states
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
 
   // Toast
   const [toast, setToast] = useState(null);
@@ -37,10 +143,13 @@ export default function Generate() {
   const fetchStatus = async () => {
     try {
       const category = new URLSearchParams(window.location.search).get('category') || localStorage.getItem('cert_category') || 'events';
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const uid = user.id ?? '';
+      
       const res = await axios.get(`http://${window.location.hostname}:5000/api/templates/status?category=${category}`);
       setStatus(res.data);
 
-      const resDash = await axios.get(`http://${window.location.hostname}:5000/api/dashboard?category=${category}`);
+      const resDash = await axios.get(`http://${window.location.hostname}:5000/api/dashboard?category=${category}&user_id=${uid}&_=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
       if (resDash.data.students) {
         setStudents(resDash.data.students);
         if (resDash.data.students.length > 0) {
@@ -52,6 +161,10 @@ export default function Generate() {
       }
 
       const resConfig = await axios.get(`http://${window.location.hostname}:5000/api/config/qr-position`);
+
+      const resFont = await axios.get(`http://${window.location.hostname}:5000/api/config/font-style`);
+      if (resFont.data.font) setFontStyle(resFont.data.font);
+
       setQrPosition(resConfig.data.position || 'center-bottom');
 
       const resText = await axios.get(`http://${window.location.hostname}:5000/api/config/text-fields`);
@@ -60,12 +173,25 @@ export default function Generate() {
         setActiveFieldIndex(0);
       }
       setPreviewKey(Date.now());
+      return resDash.data.students || [];
     } catch (err) {
       console.error(err);
+      return [];
     }
   };
 
-  useEffect(() => { fetchStatus(); }, []);
+  useEffect(() => { if (active) fetchStatus(); }, [active]);
+
+  // Re-fetch immediately whenever Excel is uploaded from the Upload tab,
+  // even if this component is currently hidden (active=false / display:none).
+  // This keeps the column dropdowns (colOptions) in sync without a tab switch.
+  useEffect(() => {
+    const handleExcelUpload = () => {
+      fetchStatus();
+    };
+    window.addEventListener('excel_uploaded', handleExcelUpload);
+    return () => window.removeEventListener('excel_uploaded', handleExcelUpload);
+  }, []);
 
   // ── Template upload ──────────────────────────────────────────────────────
   const handleUpload = async (type, file) => {
@@ -89,12 +215,28 @@ export default function Generate() {
     }
   };
 
-  const loadPreviews = () => {
-    if (students.length === 0) {
+  const loadPreviews = async () => {
+    const latestStudents = await fetchStatus();
+    if (latestStudents.length === 0) {
       notify('warn', 'No students uploaded yet. Please upload an Excel file first.');
       return;
     }
     setShowPreviews(true);
+  };
+
+  
+  const applyFont = async () => {
+    if (!fontStyle.trim()) return;
+    setFontLoading(true);
+    try {
+      await axios.post(`http://${window.location.hostname}:5000/api/config/font-style`, { font: fontStyle.trim() });
+      setPreviewKey(Date.now());
+      showToast('success', `Successfully applied font: ${fontStyle}`);
+    } catch (err) {
+      showToast('error', err.response?.data?.error || 'Failed to apply font');
+    } finally {
+      setFontLoading(false);
+    }
   };
 
   const handlePositionChange = async (e) => {
@@ -123,7 +265,7 @@ export default function Generate() {
       y_percent: Math.min(90, 55.0 + textFieldsConfig.length * 10),
       font_size: 50,
       align: 'center',
-      color: '#000000',
+      color: 'var(--text-primary)',
     };
     setTextFieldsConfig(prev => [...prev, newField]);
     setActiveFieldIndex(textFieldsConfig.length); // focus new field
@@ -147,6 +289,8 @@ export default function Generate() {
 
   const handleSaveTextConfig = async () => {
     setIsSaving(true);
+    // Push current state onto undo stack before saving
+    setUndoStack(prev => [...prev.slice(-20), textFieldsConfig]);
     try {
       const sanitised = textFieldsConfig.map(f => ({
         key: String(f.key || 'Name'),
@@ -160,7 +304,7 @@ export default function Generate() {
       }));
       await axios.post(
         `http://${window.location.hostname}:5000/api/config/text-fields`,
-        { fields: sanitised },
+        { fields: sanitised, user_id: user.id },
         { headers: { 'Content-Type': 'application/json' } }
       );
       setPreviewKey(Date.now());
@@ -176,10 +320,44 @@ export default function Generate() {
     }
   };
 
+  // Ctrl+Z undo (Item 7)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault();
+        setUndoStack(prev => {
+          if (prev.length === 0) return prev;
+          const newStack = [...prev];
+          const previous = newStack.pop();
+          setTextFieldsConfig(previous);
+          setPreviewKey(Date.now());
+          notify('info', 'Undo — restored previous field config');
+          return newStack;
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [notify]);
+
   // ── JSX ──────────────────────────────────────────────────────────────────
   return (
     <div style={{ position: 'relative' }}>
       <h2>Templates Setup</h2>
+
+      {/* Version History Panel (Item 7) */}
+      <VersionHistoryPanel
+        userId={user.id}
+        open={showVersionHistory}
+        onClose={() => setShowVersionHistory(false)}
+        onRestore={(fields) => {
+          setUndoStack(prev => [...prev, textFieldsConfig]);
+          setTextFieldsConfig(fields);
+          setPreviewKey(Date.now());
+          notify('success', 'Version restored!');
+        }}
+      />
+      {showVersionHistory && <div onClick={() => setShowVersionHistory(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.3)' }} />}
 
       {/* Toast */}
       <div style={{
@@ -193,13 +371,13 @@ export default function Generate() {
             minWidth: '300px', maxWidth: '420px',
             boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
             border: `1px solid ${toast.type === 'success' ? '#10B981' : toast.type === 'error' ? '#EF4444' : '#F59E0B'}`,
-            background: '#1d2627',
+            background: 'var(--surface)',
             animation: 'slideIn 0.25s ease',
           }}>
             <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>
               {toast.type === 'success' ? '✅' : toast.type === 'error' ? '❌' : '⚠️'}
             </span>
-            <p style={{ margin: 0, fontSize: '0.875rem', color: '#F1F5F9', lineHeight: 1.5, flex: 1 }}>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-primary)', lineHeight: 1.5, flex: 1 }}>
               {toast.msg}
             </p>
             <button onClick={() => setToast(null)} style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', padding: 0 }}>
@@ -211,18 +389,20 @@ export default function Generate() {
       <style>{`@keyframes slideIn { from { opacity:0; transform:translateX(2rem); } to { opacity:1; transform:translateX(0); } }`}</style>
 
       {/* ── QR Code Alignment ─────────────────────────────────────────────── */}
-      <div className="card" style={{ marginBottom: '2rem' }}>
+      <div className="sleek-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h3 style={{ margin: 0 }}>QR Code Alignment</h3>
-            <p style={{ color: '#94A3B8', margin: 0, marginTop: '0.25rem' }}>
-              Select where the QR code and Unique ID should print on the certificates.
+            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span className="animated-icon">📐</span> QR Code Alignment
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', margin: 0, marginTop: '0.4rem', fontSize: '0.9rem' }}>
+              Position the unique verification QR code dynamically.
             </p>
           </div>
           <select
             value={qrPosition}
             onChange={handlePositionChange}
-            style={{ padding: '0.75rem 1rem', background: 'var(--surface)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '0.75rem', outline: 'none', cursor: 'pointer' }}
+            className="premium-select"
           >
             <option value="center-bottom">Center Bottom (Default)</option>
             <option value="center-right">Center Right</option>
@@ -235,15 +415,68 @@ export default function Generate() {
         </div>
       </div>
 
+      {/* ── Font Style ─────────────────────────────────────────────── */}
+      <div className="sleek-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span className="animated-icon" style={{ animationDelay: '0.5s' }}>🔤</span> Google Fonts
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', margin: 0, marginTop: '0.4rem', fontSize: '0.9rem' }}>
+              Type any font name from Google Fonts (e.g. "Dancing Script").
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <input
+              type="text"
+              value={fontStyle}
+              onChange={(e) => setFontStyle(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && applyFont()}
+              placeholder="e.g. Montserrat"
+              className="premium-input"
+            />
+            <button
+              onClick={applyFont}
+              disabled={fontLoading || !fontStyle.trim()}
+              className="premium-btn"
+            >
+              {fontLoading ? (
+                <>
+                  <span className="spin" style={{ display: 'inline-block' }}>🌀</span> Loading...
+                </>
+              ) : 'Apply Font'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* ── Text Field Placement ───────────────────────────────────────────── */}
       <div className="card" style={{ marginBottom: '2rem' }}>
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h3 style={{ margin: 0 }}>Text Field Placement</h3>
-          <p style={{ color: '#94A3B8', margin: '0.3rem 0 0', fontSize: '0.875rem' }}>
-            Pick a data column for each field, then{' '}
-            <strong style={{ color: '#818CF8' }}>click on the certificate preview</strong> to position it.
-            Use <strong style={{ color: '#818CF8' }}>+ Add Field</strong> next to the column selector to add more fields.
-          </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+          <div>
+            <h3 style={{ margin: 0 }}>Text Field Placement</h3>
+            <p style={{ color: '#94A3B8', margin: '0.3rem 0 0', fontSize: '0.875rem' }}>
+              Pick a data column for each field, then{' '}
+              <strong style={{ color: '#818CF8' }}>click on the certificate preview</strong> to position it.
+              Use <strong style={{ color: '#818CF8' }}>+ Add Field</strong> next to the column selector to add more fields.
+              <span style={{ display: 'inline-block', marginLeft: '0.5rem', fontSize: '0.72rem', opacity: 0.6 }}>· Ctrl+Z to undo</span>
+            </p>
+          </div>
+          {/* Version History Button (Item 7) */}
+          <button
+            onClick={() => setShowVersionHistory(true)}
+            title="View Version History"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.4rem',
+              padding: '0.45rem 0.9rem', borderRadius: '0.5rem',
+              background: 'rgba(200,160,122,0.1)',
+              border: '1px solid rgba(200,160,122,0.35)',
+              color: 'var(--accent)', fontSize: '0.78rem', fontWeight: 700,
+              cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+            }}
+          >
+            🕐 History {undoStack.length > 0 ? `(${undoStack.length})` : ''}
+          </button>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '2rem' }}>
@@ -456,7 +689,7 @@ export default function Generate() {
             >
               {(status.winner_exists || status.participant_exists) ? (
                 <img
-                  src={`http://${window.location.hostname}:5000/api/preview_cert/0?category=${new URLSearchParams(window.location.search).get('category') || localStorage.getItem('cert_category') || 'events'}&t=${previewKey}`}
+                  src={`http://${window.location.hostname}:5000/api/preview_cert/0?category=${new URLSearchParams(window.location.search).get('category') || localStorage.getItem('cert_category') || 'events'}&user_id=${JSON.parse(localStorage.getItem('user') || '{}').id || ''}&t=${previewKey}`}
                   alt="Template Preview"
                   style={{ width: '100%', display: 'block', pointerEvents: 'none' }}
                   draggable={false}
@@ -492,7 +725,7 @@ export default function Generate() {
                     <div style={{ width: '13px', height: '13px', borderRadius: '50%', background: color, border: '2.5px solid white', boxShadow: `0 0 10px ${color}`, opacity: isActive ? 1 : 0.7 }} />
                     <div style={{
                       position: 'absolute', top: '16px', left: '50%', transform: 'translateX(-50%)',
-                      background: 'rgba(0,0,0,0.8)', color: '#fff',
+                      background: 'rgba(0,0,0,0.8)', color: 'var(--text-primary)',
                       fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.45rem', borderRadius: '0.2rem',
                       whiteSpace: 'nowrap', border: `1px solid ${color}`,
                     }}>
@@ -622,7 +855,7 @@ export default function Generate() {
               <div key={idx} style={{ border: '1px solid var(--border)', borderRadius: '1rem', overflow: 'hidden', background: 'var(--surface)', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
                 <div style={{ background: 'var(--surface-hover)', textAlign: 'center', padding: '1rem', borderBottom: '1px solid var(--border)' }}>
                   <img
-                    src={`http://${window.location.hostname}:5000/api/preview_cert/${idx}?pos=${qrPosition}&category=${new URLSearchParams(window.location.search).get('category') || localStorage.getItem('cert_category') || 'events'}&t=${previewKey}`}
+                    src={`http://${window.location.hostname}:5000/api/preview_cert/${idx}?pos=${qrPosition}&category=${new URLSearchParams(window.location.search).get('category') || localStorage.getItem('cert_category') || 'events'}&user_id=${JSON.parse(localStorage.getItem('user') || '{}').id || ''}&t=${previewKey}`}
                     alt={`Certificate for ${student.Name}`}
                     style={{ width: '100%', height: 'auto', maxHeight: '200px', objectFit: 'contain', cursor: 'pointer', transition: 'transform 0.2s' }}
                     loading="lazy"
@@ -655,10 +888,10 @@ export default function Generate() {
           <div style={{ position: 'relative', width: '90%', maxWidth: '1200px', maxHeight: '90vh', display: 'flex', justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
             <button
               onClick={() => setSelectedImage(null)}
-              style={{ position: 'absolute', top: '-40px', right: 0, background: 'transparent', border: 'none', color: '#fff', fontSize: '2.5rem', cursor: 'pointer' }}
+              style={{ position: 'absolute', top: '-40px', right: 0, background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '2.5rem', cursor: 'pointer' }}
             >&times;</button>
             <img
-              src={`http://${window.location.hostname}:5000/api/preview_cert/${selectedImage}?pos=${qrPosition}&category=${new URLSearchParams(window.location.search).get('category') || localStorage.getItem('cert_category') || 'events'}&t=${previewKey}`}
+              src={`http://${window.location.hostname}:5000/api/preview_cert/${selectedImage}?pos=${qrPosition}&category=${new URLSearchParams(window.location.search).get('category') || localStorage.getItem('cert_category') || 'events'}&user_id=${JSON.parse(localStorage.getItem('user') || '{}').id || ''}&t=${previewKey}`}
               alt="Expanded Certificate"
               style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '0.5rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
             />
@@ -681,8 +914,8 @@ export default function Generate() {
           >
             <div
               style={{
-                width: '95%', maxWidth: '950px', maxHeight: '90vh', backgroundColor: '#e9e7e1',
-                border: '1px solid #768782', borderRadius: '1rem',
+                width: '95%', maxWidth: '950px', maxHeight: '90vh', backgroundColor: 'var(--surface)',
+                border: '1px solid var(--border)', borderRadius: '1rem',
                 padding: '2.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem',
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
                 overflowY: 'auto'
@@ -690,17 +923,17 @@ export default function Generate() {
               onClick={e => e.stopPropagation()}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(0,0,0,0.08)', paddingBottom: '1rem' }}>
-                <h3 style={{ margin: 0, color: '#3e4c4e', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.5rem', fontWeight: 800 }}>
+                <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.5rem', fontWeight: 800 }}>
                   <span>📝</span> Certificate Content Setup
                 </h3>
                 <button
                   onClick={() => setEditingTemplateIdx(null)}
-                  style={{ background: 'transparent', border: 'none', color: '#3e4c4e', fontSize: '2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', opacity: 0.8 }}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', opacity: 0.8 }}
                 >&times;</button>
               </div>
 
               <div>
-                <label style={{ color: '#3e4c4e', fontSize: '0.8rem', display: 'block', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+                <label style={{ color: 'var(--text-primary)', fontSize: '0.8rem', display: 'block', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
                   Custom Paragraph Template
                 </label>
                 <textarea
@@ -710,8 +943,8 @@ export default function Generate() {
                   value={field.template || ''}
                   onChange={e => updateField(editingTemplateIdx, 'template', e.target.value)}
                   style={{
-                    width: '100%', padding: '1rem', backgroundColor: '#ffffff',
-                    color: '#1a2223', border: '1px solid #768782', borderRadius: '0.75rem',
+                    width: '100%', padding: '1rem', backgroundColor: 'var(--bg-color)',
+                    color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '0.75rem',
                     outline: 'none', fontSize: '0.95rem', lineHeight: 1.6, resize: 'vertical',
                     fontFamily: 'inherit', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)'
                   }}
@@ -720,7 +953,7 @@ export default function Generate() {
 
               {/* Dynamic Column Placeholder Insertion Pills */}
               <div>
-                <label style={{ color: '#3e4c4e', fontSize: '0.8rem', display: 'block', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+                <label style={{ color: 'var(--text-primary)', fontSize: '0.8rem', display: 'block', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
                   Click to Insert Dynamic Column Placeholders
                 </label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
@@ -745,18 +978,18 @@ export default function Generate() {
                         }
                       }}
                       style={{
-                        padding: '0.4rem 0.85rem', backgroundColor: '#ffffff',
-                        border: '1px solid #768782', color: '#3e4c4e', borderRadius: '0.5rem',
+                        padding: '0.4rem 0.85rem', backgroundColor: 'var(--bg-color)',
+                        border: '1px solid var(--border)', color: 'var(--text-primary)', borderRadius: '0.5rem',
                         fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s',
                         boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                       }}
                       onMouseEnter={e => {
-                        e.currentTarget.style.backgroundColor = '#3e4c4e';
+                        e.currentTarget.style.backgroundColor = 'var(--surface)';
                         e.currentTarget.style.color = '#ffffff';
                       }}
                       onMouseLeave={e => {
                         e.currentTarget.style.backgroundColor = '#ffffff';
-                        e.currentTarget.style.color = '#3e4c4e';
+                        e.currentTarget.style.color = 'var(--text-primary)';
                       }}
                     >
                       +{col}
@@ -767,7 +1000,7 @@ export default function Generate() {
 
               {/* Line Wrap Width */}
               <div>
-                <label style={{ color: '#3e4c4e', fontSize: '0.8rem', display: 'block', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+                <label style={{ color: 'var(--text-primary)', fontSize: '0.8rem', display: 'block', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
                   Line wrapping (Max characters per line)
                 </label>
                 <input
@@ -776,12 +1009,12 @@ export default function Generate() {
                   onChange={e => updateField(editingTemplateIdx, 'wrap_width', parseInt(e.target.value) || '')}
                   placeholder="e.g. 70 (leave empty for no wrapping)"
                   style={{
-                    width: '100%', padding: '0.8rem 1rem', backgroundColor: '#ffffff',
-                    color: '#1a2223', border: '1px solid #768782', borderRadius: '0.75rem',
+                    width: '100%', padding: '0.8rem 1rem', backgroundColor: 'var(--bg-color)',
+                    color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '0.75rem',
                     outline: 'none', fontSize: '0.95rem', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)'
                   }}
                 />
-                <span style={{ color: '#768782', fontSize: '0.75rem', display: 'block', marginTop: '0.4rem', fontWeight: 500 }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', display: 'block', marginTop: '0.4rem', fontWeight: 500 }}>
                   Recommended: 60 to 75 for standard certificate paragraph layouts.
                 </span>
               </div>

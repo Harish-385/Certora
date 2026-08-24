@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Key, Mail, User, ShieldAlert, CheckCircle, Award } from 'lucide-react';
+import { Eye, EyeOff, Key, Mail, User, ShieldAlert, CheckCircle, Award } from './SvgIcons';
 
 export default function Login() {
   const [isRegister, setIsRegister] = useState(false);
@@ -11,6 +11,8 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  // Field-level error highlighting (Item 4)
+  const [fieldError, setFieldError] = useState(''); // 'register_number' | 'email' | ''
 
   // Forgot Password Fields
   const [showForgot, setShowForgot] = useState(false);
@@ -25,7 +27,17 @@ export default function Login() {
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Dynamic stats (Item 3)
+  const [liveStats, setLiveStats] = useState({ total_generated: 24, users_count: 0 });
+
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetch(`http://${window.location.hostname}:5000/api/public/stats`)
+      .then(r => r.json())
+      .then(d => setLiveStats(d))
+      .catch(() => {});
+  }, []);
 
   const handleToggleMode = (mode) => {
     setIsRegister(mode);
@@ -33,6 +45,7 @@ export default function Login() {
     setCodeSent(false);
     setErrorMsg('');
     setSuccessMsg('');
+    setFieldError('');
     setRegisterNumber('');
     setEmail('');
     setPassword('');
@@ -76,9 +89,13 @@ export default function Login() {
       const data = await response.json();
 
       if (!response.ok) {
+        // Field-level error highlighting (Item 4)
+        if (data.field) setFieldError(data.field);
+        else setFieldError('');
         throw new Error(data.error || 'Authentication failed.');
       }
 
+      setFieldError('');
       if (isRegister) {
         setSuccessMsg('Registration successful! Please sign in.');
         setIsRegister(false);
@@ -86,7 +103,12 @@ export default function Login() {
         setConfirmPassword('');
       } else {
         localStorage.setItem('user', JSON.stringify(data.user));
-        navigate('/dashboard');
+        // Redirect to admin dashboard if they are admin, else standard dashboard
+        if (data.user.role === 'admin') {
+          navigate('/admin-dashboard');
+        } else {
+          navigate('/dashboard');
+        }
       }
     } catch (err) {
       setErrorMsg(err.message);
@@ -148,59 +170,25 @@ export default function Login() {
   return (
     <div className="login-page-wrapper">
       <div className="split-login-container">
-        {/* Left Pane - Dark Teal branding and description message */}
+        {/* Left Side: White login form */}
         <div className="split-login-left">
-          <div className="left-brand-wrapper">
-            <div className="brand-logo-row">
-              <Award className="certora-logo" size={32} />
-              <span className="certora-title">Certora</span>
-            </div>
-
-            <div className="brand-message-block">
-              <h2>Secure Certificate Platform</h2>
-              <p>
-                Instantly generate, secure, verify, and distribute academic and professional credentials using decentralized blockchain ledger verification.
-              </p>
-            </div>
+          <div className="left-header-row">
+            <span className="brand-logo-text">Certora</span>
           </div>
 
-          <div className="left-footer-row">
-            Certora Systems &copy; {new Date().getFullYear()}
-          </div>
-        </div>
-
-        {/* Right Pane - Sleek interactive form on Light Background */}
-        <div className="split-login-right">
-          <div className="right-form-wrapper">
-
-            {/* Mode Selector Pill */}
-            <div className="toggle-pill-row">
-              <div className="toggle-pill-container">
-                <button
-                  type="button"
-                  className={`toggle-pill-btn ${!isRegister && !showForgot ? 'active' : ''}`}
-                  onClick={() => handleToggleMode(false)}
-                >
-                  Sign In
-                </button>
-                <button
-                  type="button"
-                  className={`toggle-pill-btn ${isRegister ? 'active' : ''}`}
-                  onClick={() => handleToggleMode(true)}
-                >
-                  Register
-                </button>
-              </div>
+          <div className="left-form-wrapper">
+            <div className="green-logo-badge">
+              <Award size={32} color="#fff" />
             </div>
 
             <div className="form-heading">
-              <h1>{showForgot ? 'Reset Password' : isRegister ? 'Create Account' : 'Welcome Back'}</h1>
+              <h1>{showForgot ? 'Reset Password' : isRegister ? 'Get Started' : 'Welcome Back'}</h1>
               <p>
-                {showForgot 
-                  ? 'We will send a verification code to your email.' 
-                  : isRegister 
-                    ? 'Enter your credentials to register.' 
-                    : 'Sign in to access your certificate dashboard.'}
+                {showForgot
+                  ? 'We will send a verification code to your email.'
+                  : isRegister
+                    ? 'Welcome to Certora - Let\'s create your account'
+                    : 'Welcome to Certora - Let\'s login to your account'}
               </p>
             </div>
 
@@ -218,13 +206,12 @@ export default function Login() {
               </div>
             )}
 
-            {/* Interactive Forms */}
+            {/* Forms */}
             {showForgot ? (
               <form className="auth-form-body" onSubmit={codeSent ? handleVerifyAndReset : handleSendResetCode}>
                 <div className="form-group-item">
-                  <label htmlFor="forgotEmail">Registered Email</label>
+                  <label htmlFor="forgotEmail">Email Address</label>
                   <div className="field-wrapper">
-                    <Mail className="field-icon" size={18} />
                     <input
                       id="forgotEmail"
                       type="email"
@@ -242,7 +229,6 @@ export default function Login() {
                     <div className="form-group-item">
                       <label htmlFor="forgotCode">Verification Code</label>
                       <div className="field-wrapper">
-                        <Key className="field-icon" size={18} />
                         <input
                           id="forgotCode"
                           type="text"
@@ -258,7 +244,6 @@ export default function Login() {
                     <div className="form-group-item">
                       <label htmlFor="forgotPassword">New Password</label>
                       <div className="field-wrapper">
-                        <Key className="field-icon" size={18} />
                         <input
                           id="forgotPassword"
                           type="password"
@@ -276,10 +261,10 @@ export default function Login() {
                   {forgotLoading ? 'Processing...' : codeSent ? 'Reset Password' : 'Send Verification Code'}
                 </button>
 
-                <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
                   <button
                     type="button"
-                    style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600' }}
+                    className="toggle-link-btn"
                     onClick={() => {
                       setShowForgot(false);
                       setCodeSent(false);
@@ -287,7 +272,7 @@ export default function Login() {
                       setSuccessMsg('');
                     }}
                   >
-                    Back to Sign In
+                    Back to Log in
                   </button>
                 </div>
               </form>
@@ -296,39 +281,57 @@ export default function Login() {
                 {isRegister && (
                   <div className="form-group-item">
                     <label htmlFor="regNum">User Name</label>
-                    <div className="field-wrapper">
-                      <User className="field-icon" size={18} />
+                    <div className="field-wrapper" style={fieldError === 'register_number' ? { borderColor: '#ef4444', borderRadius: '0.5rem', border: '1.5px solid #ef4444' } : {}}>
                       <input
                         id="regNum"
                         type="text"
                         placeholder="user_name"
                         value={registerNumber}
-                        onChange={(e) => setRegisterNumber(e.target.value)}
+                        onChange={(e) => { setRegisterNumber(e.target.value); if (fieldError === 'register_number') setFieldError(''); }}
+                        style={fieldError === 'register_number' ? { borderColor: '#ef4444' } : {}}
                         required
                       />
                     </div>
+                    {fieldError === 'register_number' && (
+                      <div style={{ fontSize: '0.72rem', color: '#ef4444', marginTop: '0.25rem', fontWeight: 600 }}>⚠ Username already taken — try a different one</div>
+                    )}
                   </div>
                 )}
 
                 <div className="form-group-item">
-                  <label htmlFor="email">Email Address</label>
-                  <div className="field-wrapper">
-                    <Mail className="field-icon" size={18} />
+                  <label htmlFor="email">Email or User_name</label>
+                  <div className="field-wrapper" style={fieldError === 'email' ? { border: '1.5px solid #ef4444', borderRadius: '0.5rem' } : {}}>
                     <input
                       id="email"
                       type="text"
-                      placeholder="user@gmail.com"
+                      placeholder="hi@certora.com"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => { setEmail(e.target.value); if (fieldError === 'email') setFieldError(''); }}
+                      style={fieldError === 'email' ? { borderColor: '#ef4444' } : {}}
                       required
                     />
                   </div>
+                  {fieldError === 'email' && (
+                    <div style={{ fontSize: '0.72rem', color: '#ef4444', marginTop: '0.25rem', fontWeight: 600 }}>⚠ Email already registered — use a different email</div>
+                  )}
                 </div>
 
                 <div className="form-group-item">
-                  <label htmlFor="password">Password</label>
-                  <div className="field-wrapper">
-                    <Key className="field-icon" size={18} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                    <label htmlFor="password" style={{ margin: 0 }}>Password</label>
+                    <button
+                      type="button"
+                      className="forgot-password-link"
+                      onClick={() => {
+                        setShowForgot(true);
+                        setErrorMsg('');
+                        setSuccessMsg('');
+                      }}
+                    >
+                      Forgot?
+                    </button>
+                  </div>
+                  <div className="field-wrapper password-field-wrapper">
                     <input
                       id="password"
                       type={showPassword ? 'text' : 'password'}
@@ -342,32 +345,15 @@ export default function Login() {
                       className="field-toggle-btn"
                       onClick={() => setShowPassword(!showPassword)}
                     >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
                 </div>
-
-                {!isRegister && (
-                  <div style={{ textAlign: 'right', marginTop: '0.5rem' }}>
-                    <button
-                      type="button"
-                      style={{ background: 'none', border: 'none', color: '#0f766e', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600' }}
-                      onClick={() => {
-                        setShowForgot(true);
-                        setErrorMsg('');
-                        setSuccessMsg('');
-                      }}
-                    >
-                      Forgot Password?
-                    </button>
-                  </div>
-                )}
 
                 {isRegister && (
                   <div className="form-group-item">
                     <label htmlFor="confirmPassword">Confirm Password</label>
                     <div className="field-wrapper">
-                      <Key className="field-icon" size={18} />
                       <input
                         id="confirmPassword"
                         type={showPassword ? 'text' : 'password'}
@@ -381,11 +367,95 @@ export default function Login() {
                 )}
 
                 <button type="submit" className="submit-button" disabled={loading}>
-                  {loading ? 'Processing...' : isRegister ? 'Register' : 'Sign In'}
+                  {loading ? 'Processing...' : isRegister ? 'Sign up' : 'Log in'}
                 </button>
               </form>
             )}
 
+            <div className="switch-mode-row">
+              {isRegister ? (
+                <span>
+                  Already have an account?{' '}
+                  <button type="button" className="mode-toggle-link" onClick={() => handleToggleMode(false)}>
+                    Log in
+                  </button>
+                </span>
+              ) : (
+                <span>
+                  Don't have an account?{' '}
+                  <button type="button" className="mode-toggle-link" onClick={() => handleToggleMode(true)}>
+                    Sign up
+                  </button>
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side: Premium dark graphics panel nested with padding */}
+        <div className="split-login-right-container">
+          <div className="split-login-right">
+            <div className="right-graphic-overlay"></div>
+            <div className="right-graphic-content">
+              <h2 className="hero-text">
+                Enter the Future <br />
+                <span className="italic-hero">of Credentials</span>, today
+              </h2>
+
+              {/* Floating Visual Elements Group — Dynamic Stats (Item 3) */}
+              <div className="floating-elements-container">
+                {/* Vertical floating toolbar */}
+                <div className="floating-toolbar">
+                  <div className="toolbar-icon active-tool">
+                    <Award size={18} />
+                  </div>
+                  <div className="toolbar-dots">
+                    <span></span>
+                    <span></span>
+                  </div>
+                  <div className="toolbar-icon">
+                    <Key size={18} />
+                  </div>
+                </div>
+
+                {/* White primary credit/dashboard card — dynamic data */}
+                <div className="floating-stats-card">
+                  <div className="card-top-row">
+                    <div className="card-logo-badge">
+                      <Award size={16} color="var(--accent)" />
+                    </div>
+                  </div>
+
+                  <div className="card-balance-section">
+                    <h3 className="card-balance-value">
+                      {liveStats.total_generated > 0 ? `${liveStats.total_generated}` : '0'} Active
+                    </h3>
+                    <p className="card-balance-label">Certificates Generated</p>
+                  </div>
+
+                  <div className="card-bottom-row">
+                    <div className="card-meta">
+                      <span className="card-meta-title">Platform Users</span>
+                      <span className="card-meta-number">
+                        {liveStats.users_count > 0
+                          ? `${liveStats.users_count} registered`
+                          : 'Secure Console'}
+                      </span>
+                    </div>
+                    <div className="card-type-badge">LIVE</div>
+                  </div>
+
+                  <div className="card-view-all-btn">
+                    <span>Platform Stats</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Floating bottom logo icon */}
+              <div className="bottom-floating-logo">
+                <Award size={24} color="#fff" />
+              </div>
+            </div>
           </div>
         </div>
       </div>

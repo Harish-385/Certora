@@ -1,0 +1,170 @@
+.scenery-toggle-wrapper {
+  display: inline-block;
+}
+
+.scenery-checkbox {
+  display: none;
+}
+
+.scenery-label {
+  display: block;
+  width: 100px;
+  height: 38px;
+  border-radius: 40px;
+  background-color: #87ceeb; /* Sky blue for light */
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.2), 0 2px 10px rgba(0,0,0,0.1);
+  transition: background-color 0.5s ease-in-out;
+}
+
+.scenery-checkbox:checked + .scenery-label {
+  background-color: #1a202c; /* Night sky for dark */
+}
+
+/* Background Elements Container */
+.scenery-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Stars */
+.stars {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.scenery-checkbox:checked + .scenery-label .stars {
+  opacity: 1;
+}
+
+.star {
+  position: absolute;
+  background-color: white;
+  border-radius: 50%;
+  box-shadow: 0 0 2px rgba(255,255,255,0.8);
+}
+
+.star-1 { width: 3px; height: 3px; top: 10px; left: 15px; }
+.star-2 { width: 2px; height: 2px; top: 22px; left: 25px; }
+.star-3 { width: 3px; height: 3px; top: 8px; left: 35px; }
+.star-4 { width: 1.5px; height: 1.5px; top: 25px; left: 10px; }
+.star-5 { width: 2px; height: 2px; top: 15px; left: 45px; }
+
+/* Clouds */
+.clouds {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 1;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.scenery-checkbox:checked + .scenery-label .clouds {
+  opacity: 0;
+}
+
+.cloud {
+  position: absolute;
+  background: white;
+  border-radius: 20px;
+}
+
+.cloud-1 {
+  width: 20px; height: 8px; top: 10px; right: 10px;
+  box-shadow: 5px -3px 0 2px white, 10px 0 0 0 white;
+}
+
+.cloud-2 {
+  width: 15px; height: 6px; top: 20px; right: 30px;
+  box-shadow: 4px -2px 0 1px white, 8px 0 0 0 white;
+}
+
+/* Mountains */
+.mountains {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  bottom: -5px;
+  opacity: 1;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.scenery-checkbox:checked + .scenery-label .mountains {
+  opacity: 0;
+}
+
+.mountain {
+  position: absolute;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  border-left: 15px solid transparent;
+  border-right: 15px solid transparent;
+  border-bottom: 20px solid #cbd5e1; /* Mountain gray */
+}
+
+.mountain-1 { right: 5px; }
+.mountain-2 { right: 25px; border-bottom: 25px solid #94a3b8; z-index: 1; }
+
+/* Grass */
+.grass {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  background-color: #4ade80; /* Grass green */
+  transition: transform 0.5s ease-in-out;
+  transform: translateY(0);
+  z-index: 2;
+}
+
+.scenery-checkbox:checked + .scenery-label .grass {
+  transform: translateY(10px); /* Hide grass in night mode */
+}
+
+/* Thumb (Sun/Moon) */
+.scenery-thumb {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #fcd34d; /* Sun yellow */
+  box-shadow: 0 0 10px rgba(252, 211, 77, 0.8), inset 0 -2px 4px rgba(0,0,0,0.1);
+  transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  z-index: 3;
+  overflow: hidden;
+}
+
+.scenery-checkbox:checked + .scenery-label .scenery-thumb {
+  left: calc(100% - 31px);
+  background-color: #cbd5e1; /* Moon gray */
+  box-shadow: inset 0 -2px 4px rgba(0,0,0,0.2), 0 0 5px rgba(255,255,255,0.4);
+}
+
+/* Moon Craters */
+.crater {
+  position: absolute;
+  background-color: #94a3b8;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.scenery-checkbox:checked + .scenery-label .crater {
+  opacity: 1;
+}
+
+.crater-1 { width: 6px; height: 6px; top: 8px; right: 8px; box-shadow: inset 1px 1px 2px rgba(0,0,0,0.2); }
+.crater-2 { width: 10px; height: 10px; bottom: 6px; left: 8px; box-shadow: inset 1px 1px 2px rgba(0,0,0,0.2); }
+.crater-3 { width: 4px; height: 4px; top: 16px; right: 18px; box-shadow: inset 1px 1px 2px rgba(0,0,0,0.2); }
