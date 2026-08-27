@@ -33,7 +33,7 @@ export default function Login() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`http://${window.location.hostname}:5000/api/public/stats`)
+    fetch(`/api/public/stats`)
       .then(r => r.json())
       .then(d => setLiveStats(d))
       .catch(() => {});
@@ -81,7 +81,7 @@ export default function Login() {
       : { email, password };
 
     try {
-      const response = await fetch(`http://${window.location.hostname}:5000${endpoint}`, {
+      const response = await fetch(`${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -124,7 +124,7 @@ export default function Login() {
     setErrorMsg('');
     setSuccessMsg('');
     try {
-      const response = await fetch(`http://${window.location.hostname}:5000/api/forgot-password/send-code`, {
+      const response = await fetch(`/api/forgot-password/send-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail })
@@ -147,7 +147,7 @@ export default function Login() {
     setErrorMsg('');
     setSuccessMsg('');
     try {
-      const response = await fetch(`http://${window.location.hostname}:5000/api/forgot-password/verify-and-reset`, {
+      const response = await fetch(`/api/forgot-password/verify-and-reset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail, code: forgotCode, password: forgotPassword })

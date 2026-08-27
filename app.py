@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, send_file, render_template_string
 from flask_cors import CORS
 import pandas as pd
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 from flask_talisman import Talisman
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -30,11 +31,17 @@ from psycopg2.extras import RealDictCursor
 app = Flask(__name__)
 
 # Security Hardening
-# 1. Enforce secure secret key (fallback for dev)
-app.secret_key = os.environ.get("SECRET_KEY", os.urandom(24))
+# 1. Enforce secure secret key
+app.secret_key = os.getenv("SECRET_KEY", os.urandom(24))
 
-# 2. Strict CORS - restrict to React frontend origin
-CORS(app, resources={r"/*": {"origins": "*"}})
+# Session Cookie Hardening
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = os.getenv("SESSION_COOKIE_SECURE", "False").lower() == "true"
+
+# 2. CORS origins list (handler registered after Talisman below)
+cors_origins_raw = os.getenv("CORS_ALLOWED_ORIGINS", "*")
+cors_origins_list = [orig.strip() for orig in cors_origins_raw.split(",")] if cors_origins_raw else []
 
 # 3. Security Headers (Talisman)
 csp = {
@@ -49,6 +56,23 @@ csp = {
 }
 Talisman(app, content_security_policy=csp, force_https=False) # force_https=False for local dev
 
+# CORS handler registered after Talisman so it runs last and is not stripped
+@app.after_request
+def add_cors_headers(response):
+    origin = request.headers.get("Origin", "")
+    if origin and (origin in cors_origins_list or "*" in cors_origins_list):
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    return response
+
+@app.route("/api/<path:path>", methods=["OPTIONS"])
+@app.route("/", methods=["OPTIONS"])
+def handle_options(path=""):
+    resp = app.make_default_options_response()
+    return add_cors_headers(resp)
+
 # 4. Rate Limiting
 limiter = Limiter(
     get_remote_address,
@@ -56,6 +80,7 @@ limiter = Limiter(
     default_limits=["10000 per day", "3000 per hour"],
     storage_uri="memory://"
 )
+
 
 
 # ── PostgreSQL Database Setup ───────────────────────────────────────────────
@@ -1868,7 +1893,7 @@ def api_register():
         if not register_number or not email or not password:
             return jsonify({"error": "Register number, email, and password are required"}), 400
 
-        password_hash = hash_password(password)
+        password_hash = generate_password_hash(password)
 
         conn = get_db_connection()
         cur = conn.cursor()
@@ -1913,18 +1938,19 @@ def api_login():
         if not email or not password:
             return jsonify({"error": "Email and password are required"}), 400
 
-        # Check static admin credentials
-        if (email.lower() == "admin" or email.lower() == "admin@gmail.com") and password == "harish":
+        # Check static admin credentials from environment
+        admin_email = os.getenv("ADMIN_EMAIL", "admin@gmail.com").strip().lower()
+        admin_password = os.getenv("ADMIN_PASSWORD", "harish")
+
+        if (email.lower() == "admin" or email.lower() == admin_email) and password == admin_password:
             user_info = {
                 "id": 0,
                 "register_number": "ADMIN",
-                "email": "admin@gmail.com",
+                "email": admin_email,
                 "role": "admin"
             }
             log_audit_event(0, "Admin Login", "Successful administrator console login")
             return jsonify({"message": "Login successful", "user": user_info}), 200
-
-        password_hash = hash_password(password)
 
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -1935,11 +1961,41 @@ def api_login():
         )
         user = cur.fetchone()
 
-        if not user or user["password_hash"] != password_hash:
+        if not user:
             log_audit_event(None, "Login Failed", f"Attempted login with email: {email}")
             cur.close()
             conn.close()
             return jsonify({"error": "Invalid email or password"}), 401
+
+        stored_hash = user["password_hash"]
+        is_legacy = False
+        password_correct = False
+
+        # Verify password using secure check or fallback
+        if stored_hash.startswith("pbkdf2:") or stored_hash.startswith("scrypt:") or stored_hash.startswith("bcrypt:"):
+            password_correct = check_password_hash(stored_hash, password)
+        else:
+            # Fallback to legacy SHA-256 hash
+            legacy_hash = hash_password(password)
+            if stored_hash == legacy_hash:
+                password_correct = True
+                is_legacy = True
+
+        if not password_correct:
+            log_audit_event(None, "Login Failed", f"Attempted login with email: {email}")
+            cur.close()
+            conn.close()
+            return jsonify({"error": "Invalid email or password"}), 401
+
+        # Auto-upgrade legacy hash on successful login
+        if is_legacy:
+            try:
+                new_hash = generate_password_hash(password)
+                cur.execute("UPDATE users SET password_hash = %s WHERE id = %s", (new_hash, user["id"]))
+                conn.commit()
+                log_audit_event(user["id"], "Password Hash Upgraded", f"Upgraded password hash to secure format for user {user['email']}")
+            except Exception as upgrade_err:
+                print(f"Failed to auto-upgrade password hash for {user['email']}: {upgrade_err}")
 
         if not user.get("is_active", True):
             # Check if they have ever logged in successfully
@@ -2018,7 +2074,7 @@ def api_admin_reset_password(target_id):
         if not new_password or len(new_password.strip()) < 4:
             return jsonify({"error": "Password must be at least 4 characters long"}), 400
             
-        new_hash = hash_password(new_password)
+        new_hash = generate_password_hash(new_password)
         
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -2138,7 +2194,7 @@ def api_admin_users_bulk_upload():
                 continue
 
             # insert user
-            password_hash = hash_password(password)
+            password_hash = generate_password_hash(password)
             try:
                 # convert role and is_active
                 role = role if role in ["admin", "user"] else "user"
@@ -2462,7 +2518,7 @@ def api_forgot_password_verify_and_reset():
             return jsonify({"error": "Invalid verification code. Please check and try again."}), 400
             
         # Update user's password
-        password_hash = hash_password(new_password)
+        password_hash = generate_password_hash(new_password)
         cur.execute("UPDATE users SET password_hash = %s WHERE email = %s RETURNING id", (password_hash, email))
         user = cur.fetchone()
         

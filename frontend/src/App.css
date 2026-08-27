@@ -1,19 +1,32 @@
 :root {
-  /* Default (Light Theme) */
-  --primary: #353E43;
-  --primary-hover: #242b2e;
-  --secondary: #768782;
-  --bg-color: #fff8eb;
-  --surface: #ffffff;
-  --surface-hover: #f5f3ef;
-  --text-primary: #1d2627;
-  --text-secondary: #5c6b6c;
-  --border: #d8d6cf;
-  --accent: #c89f84;
-  --danger: #b91c1c;
-  --status-success: #059669;
-  --status-error: #dc2626;
-  --status-info: #0d9488;
+  /* Default (Light Theme) - Sophisticated Beige + Charcoal */
+  --primary: #252525;
+  --primary-hover: #343434;
+  --secondary: #343434;
+  --bg-color: #F7F0E4;
+  --surface: #FCFAF6;
+  --surface-hover: #F1EADF;
+  --text-primary: #252525;
+  --text-secondary: #555555;
+  --border: #E8DFD0;
+  --accent: #C9A47A;
+  --danger: #A63F3F;
+  --status-success: #8D9984;
+  --status-error: #B06B62;
+  --status-info: #A89582;
+
+  /* Login panel specific */
+  --login-left-bg: #fdf5ea;
+  --login-right-bg: #252525;
+  --login-text-heading: #0f172a;
+  --login-text-sub: #64748b;
+  --login-input-bg: #ffffff;
+  --login-input-border: #cbd5e1;
+  --login-input-focus-border: #353E43;
+  --login-btn-bg: #222222;
+  --login-btn-hover: #3a3a3a;
+  --login-label-color: #334155;
+  --login-brand-color: #353E43;
 }
 
 [data-theme="dark"] {
@@ -31,14 +44,19 @@
   --status-success: #34d399;
   --status-error: #f87171;
   --status-info: #2dd4bf;
-}
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --status-success: #34d399;
-    --status-error: #f87171;
-    --status-info: #2dd4bf;
-  }
+  /* Login panel dark overrides */
+  --login-left-bg: #1a1a1a;
+  --login-right-bg: #0d0d0d;
+  --login-text-heading: #f1f5f9;
+  --login-text-sub: #94a3b8;
+  --login-input-bg: #262626;
+  --login-input-border: #404040;
+  --login-input-focus-border: #a3a3a3;
+  --login-btn-bg: #f1f5f9;
+  --login-btn-hover: #ffffff;
+  --login-label-color: #cbd5e1;
+  --login-brand-color: #f1f5f9;
 }
 
 @keyframes fadeIn {
@@ -70,7 +88,7 @@ body {
   width: 260px;
   background-color: var(--primary);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 2.5rem 1.25rem;
+  padding: 1.5rem 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -82,6 +100,13 @@ body {
   box-sizing: border-box;
   z-index: 100;
   box-shadow: 4px 0 25px rgba(0, 0, 0, 0.05);
+  overflow-y: auto;
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.sidebar::-webkit-scrollbar {
+  display: none; /* Hide scrollbar for Chrome, Safari and Opera */
 }
 
 .sidebar a {
@@ -106,10 +131,10 @@ body {
 }
 
 .sidebar a.active {
-  background-color: var(--secondary);
-  color: #fff;
-  font-weight: 600;
-  box-shadow: 0 4px 12px rgba(118, 135, 130, 0.2);
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .sidebar a.active::before {
@@ -234,21 +259,27 @@ table {
 
 th,
 td {
-  padding: 1rem;
+  padding: 1.1rem 1rem;
   text-align: left;
   border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+thead tr {
+  background-color: var(--surface-hover);
 }
 
 th {
-  color: var(--text-secondary);
-  font-weight: 600;
-  font-size: 0.875rem;
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 0.85rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
+  border-bottom: 2px solid var(--border);
 }
 
 tr:hover td {
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: rgba(201, 164, 122, 0.04);
 }
 
 input[type="file"],
@@ -394,7 +425,7 @@ input:focus {
 /* Left Pane (White background interactive container) */
 .split-login-left {
   flex: 1;
-  background: var(--surface);
+  background: var(--login-left-bg);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -414,7 +445,7 @@ input:focus {
   font-family: 'Outfit', 'Inter', sans-serif;
   font-size: 1.6rem;
   font-weight: 800;
-  color: #353E43;
+  color: var(--login-brand-color);
   letter-spacing: -0.03em;
 }
 
@@ -444,13 +475,13 @@ input:focus {
 .form-heading h1 {
   font-size: 1.8rem;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--login-text-heading);
   margin: 0 0 0.4rem 0;
   letter-spacing: -0.03em;
 }
 
 .form-heading p {
-  color: #64748b;
+  color: var(--login-text-sub);
   font-size: 0.88rem;
   margin: 0;
   line-height: 1.5;
@@ -472,7 +503,7 @@ input:focus {
 .form-group-item label {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--login-label-color);
 }
 
 .field-wrapper {
@@ -491,10 +522,10 @@ input:focus {
 .field-wrapper input {
   width: 100%;
   padding: 0.75rem 1rem !important;
-  background-color: var(--surface) !important;
-  border: 1px solid #cbd5e1 !important;
+  background-color: var(--login-input-bg) !important;
+  border: 1px solid var(--login-input-border) !important;
   border-radius: 0.75rem !important;
-  color: #0f172a !important;
+  color: var(--login-text-heading) !important;
   font-size: 0.95rem;
   margin-bottom: 0 !important;
   transition: all 0.2s ease;
@@ -505,7 +536,7 @@ input:focus {
 }
 
 .field-wrapper input:focus {
-  border-color: #353E43 !important;
+  border-color: var(--login-input-focus-border) !important;
   outline: none;
   box-shadow: 0 0 0 3px rgba(53, 62, 67, 0.15);
 }
@@ -522,7 +553,7 @@ input:focus {
 }
 
 .forgot-password-link:hover {
-  color: #353E43;
+  color: var(--login-brand-color);
 }
 
 .toggle-link-btn {
@@ -536,7 +567,7 @@ input:focus {
 }
 
 .toggle-link-btn:hover {
-  color: #353E43;
+  color: var(--login-brand-color);
 }
 
 .switch-mode-row {
@@ -549,7 +580,7 @@ input:focus {
 .mode-toggle-link {
   background: none;
   border: none;
-  color: #353E43;
+  color: var(--login-brand-color);
   font-weight: 700;
   cursor: pointer;
   padding: 0;
@@ -599,8 +630,8 @@ input:focus {
 }
 
 .submit-button {
-  background-color: var(--primary) !important;
-  color: #ffffff;
+  background-color: var(--login-btn-bg) !important;
+  color: var(--bg-color);
   border: none;
   border-radius: 0.75rem;
   padding: 0.85rem 1.5rem;
@@ -1456,7 +1487,7 @@ input:focus {
 
 .split-login-right {
   flex: 1;
-  background: linear-gradient(135deg, #353E43 0%, #1e2528 100%);
+  background: var(--login-right-bg);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -2016,26 +2047,160 @@ input:focus, select:focus, textarea:focus {
 }
 
 [data-theme="dark"] .sleek-card {
-  background: var(--surface);
-  border-color: var(--border);
+  background: #181818 !important;
+  border-color: #303030 !important;
 }
 [data-theme="dark"] .premium-input {
-  background: var(--bg-color);
-  border-color: var(--border);
-  color: var(--text-primary);
+  background: #0d0d0d !important;
+  border-color: #303030 !important;
+  color: #ffffff !important;
 }
 
+/* ── Force neutral dark colors everywhere in dark mode ── */
+[data-theme="dark"] .stat-card {
+  background: #181818 !important;
+  border-color: #2a2a2a !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
+}
+[data-theme="dark"] .stat-card:hover {
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 10px 20px rgba(0,0,0,0.4) !important;
+}
+[data-theme="dark"] .stat-card h3 {
+  background: linear-gradient(to right, #ffffff, #a0a0a0);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+[data-theme="dark"] .stat-card p {
+  color: #888888 !important;
+}
+
+[data-theme="dark"] .admin-chart-card,
+[data-theme="dark"] .sleek-card {
+  background: #181818 !important;
+  border-color: #2a2a2a !important;
+}
+
+[data-theme="dark"] .floating-stats-card {
+  background: #202020 !important;
+  border-color: #333 !important;
+}
+
+/* Table rows */
+[data-theme="dark"] tr:hover td {
+  background-color: rgba(255,255,255,0.04) !important;
+}
+[data-theme="dark"] th {
+  background-color: #111111 !important;
+  color: #888888 !important;
+  border-color: #2a2a2a !important;
+}
+[data-theme="dark"] td {
+  border-color: #1e1e1e !important;
+  color: #cccccc !important;
+}
+
+/* Buttons */
 [data-theme="dark"] select,
 [data-theme="dark"] input[type="text"],
 [data-theme="dark"] input[type="email"],
 [data-theme="dark"] input[type="number"],
 [data-theme="dark"] input[type="password"],
 [data-theme="dark"] textarea {
-  background-color: var(--surface) !important;
-  color: var(--text-primary) !important;
-  border-color: var(--border) !important;
+  background-color: #1e1e1e !important;
+  color: #f0f0f0 !important;
+  border-color: #333333 !important;
 }
 [data-theme="dark"] select option {
-  background-color: var(--surface);
-  color: var(--text-primary);
+  background-color: #1e1e1e !important;
+  color: #f0f0f0 !important;
 }
+
+/* Status badges in dark mode */
+[data-theme="dark"] .status-Pending  { background: rgba(255,255,255,0.08) !important; color: #d4a017 !important; }
+[data-theme="dark"] .status-Generated{ background: rgba(255,255,255,0.08) !important; color: #5cb85c !important; }
+[data-theme="dark"] .status-Sent     { background: rgba(255,255,255,0.08) !important; color: #5bc0de !important; }
+
+/* Card logo badge */
+[data-theme="dark"] .card-logo-badge {
+  background: rgba(255,255,255,0.08) !important;
+}
+
+/* Submit button hover in dark mode */
+[data-theme="dark"] .submit-button:hover:not(:disabled) {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  box-shadow: 0 4px 20px rgba(255,255,255,0.3) !important;
+}
+
+/* ── Neutralize inline hardcoded warm/beige colors in dark mode ──
+   Dashboard.jsx uses inline styles with #FCFAF6, #F7F0E4 etc. 
+   These selectors catch the key structural elements. */
+
+/* Main content area background */
+[data-theme="dark"] .main-content,
+[data-theme="dark"] .admin-main-content {
+  background-color: #0d0d0d !important;
+}
+
+/* All button elements in main content (stat toolbar, download btns etc.) */
+[data-theme="dark"] .main-content button,
+[data-theme="dark"] .admin-main-content button {
+  background-color: #1e1e1e !important;
+  color: #f0f0f0 !important;
+  border-color: #333333 !important;
+}
+
+/* Selects in main area */
+[data-theme="dark"] .main-content select,
+[data-theme="dark"] .admin-main-content select {
+  background-color: #1e1e1e !important;
+  color: #f0f0f0 !important;
+  border-color: #333333 !important;
+}
+
+/* Icon badge circles (e.g. the colored circles in stat cards) */
+[data-theme="dark"] .stat-icon-badge,
+[data-theme="dark"] [class*="icon-badge"],
+[data-theme="dark"] [class*="badge-icon"] {
+  background-color: #252525 !important;
+}
+
+/* Any div with inline background of warm tones — caught by targeting the stat card icons  */
+[data-theme="dark"] .stat-card > div:first-child {
+  background-color: #252525 !important;
+}
+
+/* Force dark background on standard card containers */
+[data-theme="dark"] .card {
+  background: #181818 !important;
+  background-color: #181818 !important;
+  border-color: #2a2a2a !important;
+  border: 1px solid #2a2a2a !important;
+}
+
+/* Card titles and text elements */
+[data-theme="dark"] .card h3,
+[data-theme="dark"] .card h2,
+[data-theme="dark"] .card h1,
+[data-theme="dark"] .card div {
+  color: #f0f0f0 !important;
+}
+
+/* Specifically target the three-dots buttons in cards */
+[data-theme="dark"] .card button {
+  color: #888888 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Target count totals and labels inside cards */
+[data-theme="dark"] .card div[style*="color: #252525"],
+[data-theme="dark"] .card div[style*="color:#252525"] {
+  color: #ffffff !important;
+}
+[data-theme="dark"] .card div[style*="color: #A89582"],
+[data-theme="dark"] .card div[style*="color:#A89582"] {
+  color: #888888 !important;
+}
+

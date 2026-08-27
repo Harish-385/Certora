@@ -162,13 +162,13 @@ function AuthenticatedLayout({ theme, toggleTheme }) {
   return (
     <div className="app-container">
       <div className="sidebar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 2rem 0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 1.25rem 0.5rem' }}>
           <Award size={26} style={{ color: 'var(--accent)' }} />
           <h2 style={{ color: '#fff', margin: 0, fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.02em' }}>Certora</h2>
         </div>
         
         {/* Category Switcher - Premium Custom Dropdown */}
-        <div style={{ margin: '0 0 2rem 0', position: 'relative' }}>
+        <div style={{ margin: '0 0 1.25rem 0', position: 'relative' }}>
           <span style={{ color: '#e9e7e1', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.8, display: 'block', marginBottom: '0.45rem', paddingLeft: '0.25rem' }}>
             Active Category
           </span>
@@ -253,7 +253,8 @@ function AuthenticatedLayout({ theme, toggleTheme }) {
           )}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
+
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
           <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
         </div>
 
@@ -304,28 +305,58 @@ function AuthenticatedLayout({ theme, toggleTheme }) {
 
         {/* Username + Logout button at bottom of sidebar */}
         <div style={{ marginTop: isOriginalAdmin ? '0' : 'auto' }}>
-          {/* Username display */}
+          {/* Username display with circular avatar */}
           <div style={{
-            padding: '0.6rem 1rem',
-            marginBottom: '0.4rem',
-            borderRadius: '0.6rem',
-            background: 'rgba(255,255,255,0.05)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.75rem 1rem',
+            marginBottom: '0.6rem',
+            borderRadius: '0.85rem',
+            background: 'rgba(255,255,255,0.04)',
             border: '1px solid rgba(255,255,255,0.08)'
           }}>
-            <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.45)', marginBottom: '0.2rem' }}>Logged in as</div>
-            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user.register_number || user.email || 'User'}
+            <div style={{ flex: 1, overflow: 'hidden', marginRight: '0.5rem' }}>
+              <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.4)', marginBottom: '0.2rem' }}>Logged in as</div>
+              <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user.register_number || user.email || 'User'}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user.email}
+              </div>
             </div>
-            <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user.email}
+            <div style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              background: '#C9A47A',
+              color: '#252525',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 800,
+              fontSize: '1rem',
+              flexShrink: 0
+            }}>
+              {(user.register_number || user.email || 'H')[0].toUpperCase()}
             </div>
           </div>
 
           <button 
             className="logout-sidebar-btn" 
             onClick={handleLogout}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}
           >
-            <LogOut size={20} /> Logout
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <LogOut size={20} /> Logout
+            </div>
+            
+            {/* Subtle decorative dot shapes next to Logout */}
+            <div style={{ opacity: 0.25, display: 'flex', gap: '2px', alignItems: 'center' }}>
+              <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#fff' }}></span>
+              <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#fff' }}></span>
+              <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#fff' }}></span>
+            </div>
           </button>
         </div>
       </div>
