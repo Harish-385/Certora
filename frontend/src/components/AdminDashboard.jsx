@@ -3,6 +3,8 @@ import axios from 'axios';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, PointElement, LineElement } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
 import { Users, Mail, Download, RefreshCw, Layers, ChevronDown, UploadCloud } from './SvgIcons';
+import { API_BASE } from '../config';
+
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, PointElement, LineElement);
 
@@ -36,7 +38,7 @@ export default function AdminDashboard() {
     setStatsFilter('all');
     setAdvancedStats(null); // Reset previous state
     try {
-      const res = await axios.get(`http://${window.location.hostname}:5000/api/admin/users/${user.id}/advanced-stats`);
+      const res = await axios.get(`${API_BASE}/api/admin/users/${user.id}/advanced-stats`);
       setAdvancedStats(res.data);
     } catch (err) {
       console.error("Failed to load advanced stats:", err);
@@ -46,7 +48,7 @@ export default function AdminDashboard() {
   const fetchAdminStats = async () => {
     setRefreshing(true);
     try {
-      const res = await axios.get(`http://${window.location.hostname}:5000/api/admin/stats`);
+      const res = await axios.get(`${API_BASE}/api/admin/stats`);
       setData(res.data);
     } catch (err) {
       console.error("Failed to fetch admin stats:", err);
@@ -58,7 +60,7 @@ export default function AdminDashboard() {
 
   const fetchTemplates = async () => {
     try {
-      const res = await axios.get(`http://${window.location.hostname}:5000/api/admin/templates`);
+      const res = await axios.get(`${API_BASE}/api/admin/templates`);
       setTemplates(res.data.templates || {});
     } catch (err) {
       console.error("Failed to fetch templates catalog:", err);
@@ -67,7 +69,7 @@ export default function AdminDashboard() {
 
   const fetchLogs = async () => {
     try {
-      const res = await axios.get(`http://${window.location.hostname}:5000/api/admin/audit_logs`);
+      const res = await axios.get(`${API_BASE}/api/admin/audit_logs`);
       setLogs(res.data.logs || []);
     } catch (err) {
       console.error("Failed to fetch audit logs:", err);
@@ -77,7 +79,7 @@ export default function AdminDashboard() {
   const handleToggleStatus = async (user) => {
     try {
       const admin = JSON.parse(localStorage.getItem('user') || '{}');
-      const res = await axios.post(`http://${window.location.hostname}:5000/api/admin/users/${user.id}/toggle-status`, { admin_id: admin.id });
+      const res = await axios.post(`${API_BASE}/api/admin/users/${user.id}/toggle-status`, { admin_id: admin.id });
       fetchAdminStats();
       fetchLogs();
       alert(res.data.message);
@@ -91,7 +93,7 @@ export default function AdminDashboard() {
     if (!passwordResetUser || !newPassword) return;
     try {
       const admin = JSON.parse(localStorage.getItem('user') || '{}');
-      const res = await axios.post(`http://${window.location.hostname}:5000/api/admin/users/${passwordResetUser.id}/reset-password`, { 
+      const res = await axios.post(`${API_BASE}/api/admin/users/${passwordResetUser.id}/reset-password`, { 
         admin_id: admin.id,
         password: newPassword
       });
@@ -127,7 +129,7 @@ export default function AdminDashboard() {
     formData.append('admin_id', admin.id);
 
     try {
-      const res = await axios.post(`http://${window.location.hostname}:5000/api/admin/users/bulk-upload`, formData, {
+      const res = await axios.post(`${API_BASE}/api/admin/users/bulk-upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setBulkResult(res.data);
@@ -146,7 +148,7 @@ export default function AdminDashboard() {
     if (!window.confirm(`Are you sure you want to change role of user ${user.email} to ${nextRole}?`)) return;
     try {
       const admin = JSON.parse(localStorage.getItem('user') || '{}');
-      const res = await axios.post(`http://${window.location.hostname}:5000/api/admin/users/${user.id}/change-role`, { 
+      const res = await axios.post(`${API_BASE}/api/admin/users/${user.id}/change-role`, { 
         admin_id: admin.id,
         role: nextRole
       });
@@ -162,7 +164,7 @@ export default function AdminDashboard() {
     if (!window.confirm(`Are you sure you want to delete the ${type} template for ${category}?`)) return;
     try {
       const admin = JSON.parse(localStorage.getItem('user') || '{}');
-      const res = await axios.delete(`http://${window.location.hostname}:5000/api/admin/templates/${category}/${type}?admin_id=${admin.id}`);
+      const res = await axios.delete(`${API_BASE}/api/admin/templates/${category}/${type}?admin_id=${admin.id}`);
       fetchTemplates();
       fetchLogs();
       alert(res.data.message);
@@ -172,7 +174,7 @@ export default function AdminDashboard() {
   };
 
   const handleExportCSV = () => {
-    window.location.href = `http://${window.location.hostname}:5000/api/admin/audit_logs/export`;
+    window.location.href = `${API_BASE}/api/admin/audit_logs/export`;
   };
 
   useEffect(() => {
@@ -781,7 +783,7 @@ export default function AdminDashboard() {
                     {types.winner.exists ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         <img 
-                          src={`http://${window.location.hostname}:5000/api/preview_cert/0?category=${category}`} 
+                          src={`${API_BASE}/api/preview_cert/0?category=${category}`} 
                           alt="Winner Template Preview" 
                           style={{ width: '100%', height: '140px', objectFit: 'contain', background: '#f1f5f9', borderRadius: '0.5rem', border: '1px solid var(--border)' }} 
                         />
@@ -818,7 +820,7 @@ export default function AdminDashboard() {
                       {types.participant.exists ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                           <img 
-                            src={`http://${window.location.hostname}:5000/api/preview_cert/0?category=${category}`} 
+                            src={`${API_BASE}/api/preview_cert/0?category=${category}`} 
                             alt="Participant Template Preview" 
                             style={{ width: '100%', height: '140px', objectFit: 'contain', background: '#f1f5f9', borderRadius: '0.5rem', border: '1px solid var(--border)' }} 
                           />

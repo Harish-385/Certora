@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import jsQR from 'jsqr';
 import { Award, Loader, CheckCircle, AlertTriangle } from './SvgIcons';
+import { API_BASE } from '../config';
 
 export default function VerifyPortal({ theme, toggleTheme }) {
   const { unique_id } = useParams();
@@ -33,13 +34,13 @@ export default function VerifyPortal({ theme, toggleTheme }) {
     setResult(null);
 
     try {
-      const res = await axios.get(`http://${window.location.hostname}:5000/api/verify/${targetId}`);
+      const res = await axios.get(`${API_BASE}/api/verify/${targetId}`);
       setResult(res.data);
       if (idToVerify !== unique_id) {
         navigate(`/verify/${targetId}`, { replace: true });
       }
       // Fetch QR analytics for this cert (Item 8)
-      axios.get(`http://${window.location.hostname}:5000/api/qr-analytics/${targetId}`)
+      axios.get(`${API_BASE}/api/qr-analytics/${targetId}`)
         .then(r => setQrAnalytics(r.data))
         .catch(() => {});
     } catch (err) {

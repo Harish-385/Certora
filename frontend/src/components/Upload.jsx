@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { UploadCloud, CheckCircle, AlertTriangle, RefreshCw } from './SvgIcons';
+import { API_BASE } from '../config';
 
 // ── Simple broadcast: signal all mounted tabs that Excel data changed ─────────
 export function broadcastExcelRefresh() {
@@ -24,7 +25,7 @@ export default function Upload({ active = true }) {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       const uid = user.id ?? '';
       if (uid === '') return;
-      const resDash = await axios.get(`http://${window.location.hostname}:5000/api/dashboard?category=${cat}&user_id=${uid}&_=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
+      const resDash = await axios.get(`${API_BASE}/api/dashboard?category=${cat}&user_id=${uid}&_=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
       if (resDash.data.students && resDash.data.students.length > 0) {
         setStudents(resDash.data.students);
       }
@@ -61,7 +62,7 @@ export default function Upload({ active = true }) {
     }
     formData.append('user_id', uid);
     try {
-      const res = await axios.post(`http://${window.location.hostname}:5000/api/upload`, formData, {
+      const res = await axios.post(`${API_BASE}/api/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setStudents(res.data.students);

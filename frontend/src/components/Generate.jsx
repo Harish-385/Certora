@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { UploadCloud, CheckCircle, Eye, AlertTriangle, Save, X } from './SvgIcons';
+import { API_BASE } from '../config';
+
 
 const DEFAULT_FIELD = { key: 'Name', x_percent: 50.0, y_percent: 50.0, font_size: 60, align: 'center', color: 'var(--text-primary)' };
 const MARKER_COLORS = ['#6366F1', '#EC4899', '#10B981', '#F59E0B', '#3B82F6', '#8B5CF6', '#EF4444'];
@@ -14,15 +16,15 @@ function VersionHistoryPanel({ userId, open, onClose, onRestore }) {
   useEffect(() => {
     if (!open) return;
     const url = userId
-      ? `http://${window.location.hostname}:5000/api/versions?user_id=${userId}`
-      : `http://${window.location.hostname}:5000/api/versions`;
+      ? `${API_BASE}/api/versions?user_id=${userId}`
+      : `${API_BASE}/api/versions`;
     axios.get(url).then(res => setVersions(res.data.versions || [])).catch(() => {});
   }, [open, userId]);
 
   const handleRestore = async (v) => {
     setRestoring(v.id);
     try {
-      const res = await axios.post(`http://${window.location.hostname}:5000/api/versions/${v.id}/restore`);
+      const res = await axios.post(`${API_BASE}/api/versions/${v.id}/restore`);
       onRestore(res.data.fields || []);
       onClose();
     } catch (e) {
@@ -146,10 +148,10 @@ export default function Generate({ active = true }) {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       const uid = user.id ?? '';
       
-      const res = await axios.get(`http://${window.location.hostname}:5000/api/templates/status?category=${category}`);
+      const res = await axios.get(`${API_BASE}/api/templates/status?category=${category}`);
       setStatus(res.data);
 
-      const resDash = await axios.get(`http://${window.location.hostname}:5000/api/dashboard?category=${category}&user_id=${uid}&_=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
+      const resDash = await axios.get(`${API_BASE}/api/dashboard?category=${category}&user_id=${uid}&_=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
       if (resDash.data.students) {
         setStudents(resDash.data.students);
         if (resDash.data.students.length > 0) {
@@ -160,14 +162,14 @@ export default function Generate({ active = true }) {
         }
       }
 
-      const resConfig = await axios.get(`http://${window.location.hostname}:5000/api/config/qr-position`);
+      const resConfig = await axios.get(`${API_BASE}/api/config/qr-position`);
 
-      const resFont = await axios.get(`http://${window.location.hostname}:5000/api/config/font-style`);
+      const resFont = await axios.get(`${API_BASE}/api/config/font-style`);
       if (resFont.data.font) setFontStyle(resFont.data.font);
 
       setQrPosition(resConfig.data.position || 'center-bottom');
 
-      const resText = await axios.get(`http://${window.location.hostname}:5000/api/config/text-fields`);
+      const resText = await axios.get(`${API_BASE}/api/config/text-fields`);
       if (resText.data.fields && resText.data.fields.length > 0) {
         setTextFieldsConfig(resText.data.fields);
         setActiveFieldIndex(0);
@@ -203,7 +205,7 @@ export default function Generate({ active = true }) {
     formData.append('template_file', file);
     formData.append('category', category);
     try {
-      await axios.post(`http://${window.location.hostname}:5000/api/templates/upload`, formData, {
+      await axios.post(`${API_BASE}/api/templates/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       fetchStatus();
@@ -229,7 +231,7 @@ export default function Generate({ active = true }) {
     if (!fontStyle.trim()) return;
     setFontLoading(true);
     try {
-      await axios.post(`http://${window.location.hostname}:5000/api/config/font-style`, { font: fontStyle.trim() });
+      await axios.post(`${API_BASE}/api/config/font-style`, { font: fontStyle.trim() });
       setPreviewKey(Date.now());
       showToast('success', `Successfully applied font: ${fontStyle}`);
     } catch (err) {
@@ -242,7 +244,7 @@ export default function Generate({ active = true }) {
   const handlePositionChange = async (e) => {
     const pos = e.target.value;
     setQrPosition(pos);
-    try { await axios.post(`http://${window.location.hostname}:5000/api/config/qr-position`, { position: pos }); }
+    try { await axios.post(`${API_BASE}/api/config/qr-position`, { position: pos }); }
     catch (err) { console.error(err); }
   };
 
@@ -303,7 +305,7 @@ export default function Generate({ active = true }) {
         wrap_width: f.wrap_width && !isNaN(f.wrap_width) ? Number(f.wrap_width) : null
       }));
       await axios.post(
-        `http://${window.location.hostname}:5000/api/config/text-fields`,
+        `${API_BASE}/api/config/text-fields`,
         { fields: sanitised, user_id: user.id },
         { headers: { 'Content-Type': 'application/json' } }
       );
@@ -689,7 +691,7 @@ export default function Generate({ active = true }) {
             >
               {(status.winner_exists || status.participant_exists) ? (
                 <img
-                  src={`http://${window.location.hostname}:5000/api/preview_cert/0?category=${new URLSearchParams(window.location.search).get('category') || localStorage.getItem('cert_category') || 'events'}&user_id=${JSON.parse(localStorage.getItem('user') || '{}').id || ''}&t=${previewKey}`}
+                  src={`${API_BASE}/api/preview_cert/0?category=${new URLSearchParams(window.location.search).get('category') || localStorage.getItem('cert_category') || 'events'}&user_id=${JSON.parse(localStorage.getItem('user') || '{}').id || ''}&t=${previewKey}`}
                   alt="Template Preview"
                   style={{ width: '100%', display: 'block', pointerEvents: 'none' }}
                   draggable={false}
@@ -855,7 +857,7 @@ export default function Generate({ active = true }) {
               <div key={idx} style={{ border: '1px solid var(--border)', borderRadius: '1rem', overflow: 'hidden', background: 'var(--surface)', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
                 <div style={{ background: 'var(--surface-hover)', textAlign: 'center', padding: '1rem', borderBottom: '1px solid var(--border)' }}>
                   <img
-                    src={`http://${window.location.hostname}:5000/api/preview_cert/${idx}?pos=${qrPosition}&category=${new URLSearchParams(window.location.search).get('category') || localStorage.getItem('cert_category') || 'events'}&user_id=${JSON.parse(localStorage.getItem('user') || '{}').id || ''}&t=${previewKey}`}
+                    src={`${API_BASE}/api/preview_cert/${idx}?pos=${qrPosition}&category=${new URLSearchParams(window.location.search).get('category') || localStorage.getItem('cert_category') || 'events'}&user_id=${JSON.parse(localStorage.getItem('user') || '{}').id || ''}&t=${previewKey}`}
                     alt={`Certificate for ${student.Name}`}
                     style={{ width: '100%', height: 'auto', maxHeight: '200px', objectFit: 'contain', cursor: 'pointer', transition: 'transform 0.2s' }}
                     loading="lazy"
@@ -891,7 +893,7 @@ export default function Generate({ active = true }) {
               style={{ position: 'absolute', top: '-40px', right: 0, background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '2.5rem', cursor: 'pointer' }}
             >&times;</button>
             <img
-              src={`http://${window.location.hostname}:5000/api/preview_cert/${selectedImage}?pos=${qrPosition}&category=${new URLSearchParams(window.location.search).get('category') || localStorage.getItem('cert_category') || 'events'}&user_id=${JSON.parse(localStorage.getItem('user') || '{}').id || ''}&t=${previewKey}`}
+              src={`${API_BASE}/api/preview_cert/${selectedImage}?pos=${qrPosition}&category=${new URLSearchParams(window.location.search).get('category') || localStorage.getItem('cert_category') || 'events'}&user_id=${JSON.parse(localStorage.getItem('user') || '{}').id || ''}&t=${previewKey}`}
               alt="Expanded Certificate"
               style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '0.5rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
             />

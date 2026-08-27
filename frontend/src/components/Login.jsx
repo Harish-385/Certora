@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Key, Mail, User, ShieldAlert, CheckCircle, Award } from './SvgIcons';
+import { API_BASE } from '../config';
 
 export default function Login() {
   const [isRegister, setIsRegister] = useState(false);
@@ -33,7 +34,7 @@ export default function Login() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`/api/public/stats`)
+    fetch(`${API_BASE}/api/public/stats`)
       .then(r => r.json())
       .then(d => setLiveStats(d))
       .catch(() => {});
@@ -75,7 +76,7 @@ export default function Login() {
     }
 
     setLoading(true);
-    const endpoint = isRegister ? '/api/register' : '/api/login';
+    const endpoint = isRegister ? `${API_BASE}/api/register` : `${API_BASE}/api/login`;
     const payload = isRegister
       ? { register_number: registerNumber, email, password }
       : { email, password };
@@ -124,7 +125,7 @@ export default function Login() {
     setErrorMsg('');
     setSuccessMsg('');
     try {
-      const response = await fetch(`/api/forgot-password/send-code`, {
+      const response = await fetch(`${API_BASE}/api/forgot-password/send-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail })
@@ -147,7 +148,7 @@ export default function Login() {
     setErrorMsg('');
     setSuccessMsg('');
     try {
-      const response = await fetch(`/api/forgot-password/verify-and-reset`, {
+      const response = await fetch(`${API_BASE}/api/forgot-password/verify-and-reset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail, code: forgotCode, password: forgotPassword })

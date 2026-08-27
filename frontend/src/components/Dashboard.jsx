@@ -3,6 +3,8 @@ import axios from 'axios';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
 import { DownloadCloud, Loader, Mail, RefreshCw } from './SvgIcons';
+import { API_BASE } from '../config';
+
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
@@ -41,8 +43,8 @@ function EmailAnalyticsModal({ open, onClose, userId }) {
 
   const fetchAnalytics = () => {
     const url = userId
-      ? `http://${window.location.hostname}:5000/api/email_analytics?user_id=${userId}`
-      : `http://${window.location.hostname}:5000/api/email_analytics`;
+      ? `${API_BASE}/api/email_analytics?user_id=${userId}`
+      : `${API_BASE}/api/email_analytics`;
     axios.get(url).then(res => {
       setAnalytics(res.data);
       setRecords(res.data.records || []);
@@ -465,7 +467,7 @@ export default function Dashboard({ active = true }) {
 
   const fetchScheduledJobs = async () => {
     try {
-      const res = await axios.get(`http://${window.location.hostname}:5000/api/schedule_emails/list`);
+      const res = await axios.get(`${API_BASE}/api/schedule_emails/list`);
       setScheduledJobs(res.data.jobs || []);
     } catch (err) { console.error(err); }
   };
@@ -473,7 +475,7 @@ export default function Dashboard({ active = true }) {
   const handleCancelJob = async (jobId) => {
     if (!window.confirm('Cancel this scheduled batch?')) return;
     try {
-      await axios.delete(`http://${window.location.hostname}:5000/api/schedule_emails/cancel/${jobId}`);
+      await axios.delete(`${API_BASE}/api/schedule_emails/cancel/${jobId}`);
       fetchScheduledJobs();
       setMessage('✅ Scheduled job cancelled.');
     } catch (err) { alert(err.response?.data?.error || err.message); }
@@ -484,7 +486,7 @@ export default function Dashboard({ active = true }) {
       const cat  = localStorage.getItem('cert_category') || 'events';
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       const uid  = user.id ?? '';
-      const res  = await axios.get(`http://${window.location.hostname}:5000/api/dashboard?category=${cat}&user_id=${uid}&_=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
+      const res  = await axios.get(`${API_BASE}/api/dashboard?category=${cat}&user_id=${uid}&_=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
       setData(res.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -494,7 +496,7 @@ export default function Dashboard({ active = true }) {
     try {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       if (user.id === undefined || user.id === null || user.id === '') return;
-      const res = await axios.get(`http://${window.location.hostname}:5000/api/active_email_tasks/${user.id}`);
+      const res = await axios.get(`${API_BASE}/api/active_email_tasks/${user.id}`);
       setActiveTasks(res.data || []);
       // If we find an active task, we can sync it with emailProgress if it's the one we just started,
       // but rendering activeTasks separately is cleaner.
@@ -544,7 +546,7 @@ export default function Dashboard({ active = true }) {
     }
     setEmailAccounts(p => p.map((a, j) => j === idx ? { ...a, testStatus: { ok: null, msg: 'Testing…' } } : a));
     try {
-      const res = await axios.post(`http://${window.location.hostname}:5000/api/test_smtp`, { email: acc.email, password: acc.password });
+      const res = await axios.post(`${API_BASE}/api/test_smtp`, { email: acc.email, password: acc.password });
       setEmailAccounts(p => p.map((a, j) => j === idx ? { ...a, testStatus: { ok: true, msg: res.data.message } } : a));
     } catch (err) {
       const errMsg = err.response?.data?.error || err.message;
@@ -560,7 +562,7 @@ export default function Dashboard({ active = true }) {
     }
     setTestRunLoading(true); setTestRunStatus(null);
     try {
-      const res = await axios.post(`http://${window.location.hostname}:5000/api/test_run`, { email: acc.email, password: acc.password, email_subject: emailSubject, email_body: emailBody });
+      const res = await axios.post(`${API_BASE}/api/test_run`, { email: acc.email, password: acc.password, email_subject: emailSubject, email_body: emailBody });
       setTestRunStatus({ ok: true, msg: res.data.message });
     } catch (err) {
       setTestRunStatus({ ok: false, msg: err.response?.data?.error || err.message });
@@ -574,17 +576,17 @@ export default function Dashboard({ active = true }) {
     try {
       const cat  = localStorage.getItem('cert_category') || 'events';
       const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const sr   = await axios.post(`http://${window.location.hostname}:5000/api/generate_zip_start`, { category: cat, user_id: user.id, format: downloadFormat, orientation: downloadOrientation });
+      const sr   = await axios.post(`${API_BASE}/api/generate_zip_start`, { category: cat, user_id: user.id, format: downloadFormat, orientation: downloadOrientation });
       const tid  = sr.data.task_id;
       while (true) {
-        const pr = await axios.get(`http://${window.location.hostname}:5000/api/generate_zip_progress/${tid}`);
+        const pr = await axios.get(`${API_BASE}/api/generate_zip_progress/${tid}`);
         if (pr.data.error) throw new Error(pr.data.error);
         if (pr.data.status === 'completed') { setZipProgress(null); break; }
         if (pr.data.status === 'error') throw new Error(pr.data.error);
         setZipProgress({ progress: pr.data.progress, total: pr.data.total });
         await new Promise(r => setTimeout(r, 1000));
       }
-      const link = document.createElement('a'); link.href = `http://${window.location.hostname}:5000/api/download_zip/${tid}`; link.setAttribute('download', 'certificates.zip');
+      const link = document.createElement('a'); link.href = `${API_BASE}/api/download_zip/${tid}`; link.setAttribute('download', 'certificates.zip');
       document.body.appendChild(link); link.click(); document.body.removeChild(link);
       fetchData();
     } catch (err) { alert('Error: ' + (err.response?.data?.error || err.message)); }
@@ -603,16 +605,16 @@ export default function Dashboard({ active = true }) {
 
       if (isScheduled) {
         if (!scheduleTime) throw new Error('Please specify a schedule time.');
-        const res = await axios.post(`http://${window.location.hostname}:5000/api/schedule_emails`, { ...payload, sender_email: valid[0].email, app_password: valid[0].password, schedule_time: new Date(scheduleTime).toISOString(), timezone: scheduleTimezone });
+        const res = await axios.post(`${API_BASE}/api/schedule_emails`, { ...payload, sender_email: valid[0].email, app_password: valid[0].password, schedule_time: new Date(scheduleTime).toISOString(), timezone: scheduleTimezone });
         setMessage('🎉 ' + res.data.message); setSending(false); fetchScheduledJobs(); return;
       }
 
-      const sr = await axios.post(`http://${window.location.hostname}:5000/api/send_emails_start`, payload);
+      const sr = await axios.post(`${API_BASE}/api/send_emails_start`, payload);
       const tid = sr.data.task_id;
       if (!tid) { setMessage(sr.data.message || 'Done'); setSending(false); fetchData(); return; }
 
       while (true) {
-        const pr = await axios.get(`http://${window.location.hostname}:5000/api/send_emails_progress/${tid}`);
+        const pr = await axios.get(`${API_BASE}/api/send_emails_progress/${tid}`);
         if (pr.data.error) throw new Error(pr.data.error);
         if (pr.data.status === 'completed') { setEmailProgress(null); setMessage(pr.data.message); break; }
         if (pr.data.status === 'error') throw new Error(pr.data.error || 'Error');
